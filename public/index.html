@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pengingat Jiwa - Sistem Pemantauan Kontrol & Obat ODGJ (SPM Keswa)</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- HEADER UTAMA -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand-section">
+        <div class="brand-logo" id="brand-logo-icon"></div>
+        <div>
+          <div class="brand-title">
+            Pengingat Jiwa
+            <span class="brand-badge">SPM KESWA</span>
+          </div>
+          <div class="brand-subtitle" id="header-faskes-title">UPTD BLUD Puskesmas Sesela &bull; Standar Pelayanan Minimal ODGJ</div>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <button class="btn-trigger-reminder" id="btn-trigger-check" title="Periksa jadwal dan kirim email H-1 sekarang">
+          <span id="bell-icon"></span>
+          <span>Cek & Kirim Pengingat H-1</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- TABS NAVIGASI -->
+    <nav class="nav-tabs">
+      <button class="tab-btn active" data-tab="dashboard">
+        <span id="nav-icon-dashboard"></span>
+        <span>Dashboard & Monitoring</span>
+      </button>
+      <button class="tab-btn" data-tab="patients">
+        <span id="nav-icon-patients"></span>
+        <span>Data Pasien ODGJ</span>
+      </button>
+      <button class="tab-btn" data-tab="logs">
+        <span id="nav-icon-logs"></span>
+        <span>Riwayat Notifikasi Email</span>
+      </button>
+      <button class="tab-btn" data-tab="settings">
+        <span id="nav-icon-settings"></span>
+        <span>Pengaturan Faskes & SMTP</span>
+      </button>
+    </nav>
+  </header>
+
+  <!-- BANNER STATUS KONEKSI SERVER -->
+  <div id="connection-error-banner" style="display: none; background: #fee2e2; border-bottom: 2px solid #ef4444; color: #991b1b; padding: 12px 24px; font-size: 13.5px; text-align: center; font-weight: 600;">
+    ⚠️ Aplikasi belum terhubung ke Server Pengingat Jiwa. Pastikan file <strong>jalankan.bat</strong> telah dijalankan di <code>http://localhost:3000</code>.
+    <button class="btn btn-secondary btn-sm" style="margin-left: 12px; font-weight: bold;" onclick="retryConnection()">Hubungkan Ulang</button>
+  </div>
+
+  <!-- KONTEN UTAMA -->
+  <main class="main-content">
+
+    <!-- ==================== TAB 1: DASHBOARD ==================== -->
+    <section id="view-dashboard" class="view-section active">
+      
+      <!-- Banner Regulasi SPM -->
+      <div class="regulation-banner">
+        <div class="regulation-text">
+          <div class="regulation-icon" id="shield-icon"></div>
+          <div>
+            <div class="regulation-title">Kepatuhan Standar Pelayanan Minimal (SPM) Kesehatan Jiwa</div>
+            <div class="regulation-desc">Sesuai UU No. 17 Tahun 2023 & Permenkes No. 4/2019: Setiap ODGJ Berat berhak mendapatkan pemeriksaan berkala dan pemantauan obat tanpa putus demi mencegah relaps dan pemasungan.</div>
+          </div>
+        </div>
+        <div style="font-size: 12px; font-weight: 600; color: #166534;" id="current-date-badge"></div>
+      </div>
+
+      <!-- Kartu Ringkasan KPI -->
+      <div class="kpi-grid">
+        <div class="kpi-card emerald">
+          <div>
+            <div class="kpi-title">Pasien ODGJ Aktif</div>
+            <div class="kpi-value" id="kpi-total-patients">0</div>
+            <div class="kpi-subtitle">Wilayah kerja binaan</div>
+          </div>
+          <div class="kpi-icon-box" id="kpi-icon-users"></div>
+        </div>
+
+        <div class="kpi-card blue">
+          <div>
+            <div class="kpi-title">H-1 Kontrol Besok</div>
+            <div class="kpi-value" id="kpi-h1-control">0</div>
+            <div class="kpi-subtitle">Perlu notifikasi H-1</div>
+          </div>
+          <div class="kpi-icon-box" id="kpi-icon-calendar"></div>
+        </div>
+
+        <div class="kpi-card amber">
+          <div>
+            <div class="kpi-title">H-1 Obat Habis Besok</div>
+            <div class="kpi-value" id="kpi-h1-medicine">0</div>
+            <div class="kpi-subtitle">Persediaan sisa 1 hari</div>
+          </div>
+          <div class="kpi-icon-box" id="kpi-icon-pill"></div>
+        </div>
+
+        <div class="kpi-card rose">
+          <div>
+            <div class="kpi-title">Terlambat Kontrol</div>
+            <div class="kpi-value" id="kpi-overdue">0</div>
+            <div class="kpi-subtitle">Peringatan risiko drop out</div>
+          </div>
+          <div class="kpi-icon-box" id="kpi-icon-alert"></div>
+        </div>
+      </div>
+
+      <!-- Tabel Pasien Memerlukan Perhatian Mendesak -->
+      <div class="content-card">
+        <div class="card-header">
+          <div class="card-header-title">
+            <span id="urgent-header-icon"></span>
+            <span>Pasien Memerlukan Perhatian & Tindakan Segera</span>
+          </div>
+          <span style="font-size: 12px; color: var(--text-muted);">Diprioritaskan berdasarkan jadwal H-1 dan keterlambatan</span>
+        </div>
+        <div class="table-responsive">
+          <table class="custom-table" id="urgent-table">
+            <thead>
+              <tr>
+                <th>Status Peringatan</th>
+                <th>Nama Pasien / No. RM</th>
+                <th>Desa / Dusun</th>
+                <th>Pendamping (PMO) & Email</th>
+                <th>Obat Terakhir</th>
+                <th>Tgl Kontrol</th>
+                <th>Tgl Obat Habis</th>
+                <th>Aksi Cepat</th>
+              </tr>
+            </thead>
+            <tbody id="urgent-table-body">
+              <tr>
+                <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 30px;">
+                  Memuat data pasien mendesak...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Log Pengiriman Email Terbaru -->
+      <div class="content-card">
+        <div class="card-header">
+          <div class="card-header-title">
+            <span id="recent-log-icon"></span>
+            <span>Aktivitas Pengiriman Notifikasi Terbaru</span>
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="switchTab('logs')">Lihat Semua Log</button>
+        </div>
+        <div class="table-responsive">
+          <table class="custom-table">
+            <thead>
+              <tr>
+                <th>Waktu Kirim</th>
+                <th>Tipe Notifikasi</th>
+                <th>Pasien / No. RM</th>
+                <th>Penerima Email</th>
+                <th>Status</th>
+                <th>Detail / Pratinjau</th>
+              </tr>
+            </thead>
+            <tbody id="recent-logs-body">
+              <tr>
+                <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 20px;">
+                  Belum ada riwayat email pengingat.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ==================== TAB 2: DATA PASIEN ==================== -->
+    <section id="view-patients" class="view-section">
+      <div class="content-card">
+        <div class="filter-bar">
+          <div class="search-input-wrapper">
+            <span class="search-icon" id="search-icon-box"></span>
+            <input type="text" id="patient-search-input" class="search-input" placeholder="Cari nama, No. RM, NIK, atau Desa...">
+          </div>
+
+          <div class="filter-pills">
+            <button class="filter-pill active" data-filter="all">Semua Pasien</button>
+            <button class="filter-pill" data-filter="h1_control">Kontrol Besok (H-1)</button>
+            <button class="filter-pill" data-filter="h1_medicine">Obat Habis Besok (H-1)</button>
+            <button class="filter-pill" data-filter="today">Hari Ini</button>
+            <button class="filter-pill" data-filter="overdue">Terlambat Kontrol</button>
+          </div>
+
+          <button class="btn btn-primary" id="btn-add-patient">
+            <span id="plus-icon-patient"></span>
+            <span>Tambah Pasien Baru</span>
+          </button>
+        </div>
+
+        <div class="table-responsive">
+          <table class="custom-table">
+            <thead>
+              <tr>
+                <th>No. RM</th>
+                <th>Nama Pasien & Umur</th>
+                <th>Diagnosis Jiwa</th>
+                <th>Alamat & Wilayah</th>
+                <th>Keluarga / PMO</th>
+                <th>Email Notifikasi</th>
+                <th>Jadwal Kontrol Berikutnya</th>
+                <th>Status Kontrol</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="patients-table-body">
+              <tr>
+                <td colspan="9" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                  Memuat data pasien...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 3: RIWAYAT NOTIFIKASI ==================== -->
+    <section id="view-logs" class="view-section">
+      <div class="content-card">
+        <div class="card-header">
+          <div class="card-header-title">
+            <span id="log-section-icon"></span>
+            <span>Riwayat & Log Pengiriman Email Pengingat</span>
+          </div>
+          <button class="btn btn-secondary btn-sm" id="btn-refresh-logs">Segarkan Log</button>
+        </div>
+        <div class="table-responsive">
+          <table class="custom-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Tanggal & Waktu</th>
+                <th>Tipe Pengingat</th>
+                <th>Nama Pasien (No. RM)</th>
+                <th>Alamat Email Tujuan</th>
+                <th>Subjek Email</th>
+                <th>Status Pengiriman</th>
+                <th>Pratinjau Isi</th>
+              </tr>
+            </thead>
+            <tbody id="full-logs-body">
+              <tr>
+                <td colspan="8" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                  Memuat riwayat log notifikasi...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 4: PENGATURAN & SMTP ==================== -->
+    <section id="view-settings" class="view-section">
+      <div class="form-grid" style="grid-template-columns: 1.2fr 1fr; align-items: start;">
+        
+        <!-- Form Pengaturan Faskes & SMTP -->
+        <div class="content-card">
+          <div class="card-header">
+            <div class="card-header-title">
+              <span id="settings-card-icon"></span>
+              <span>Konfigurasi Profil Faskes & SMTP Email</span>
+            </div>
+          </div>
+          <form id="form-settings" style="padding: 20px;">
+            <h4 style="font-size: 14px; margin-bottom: 12px; color: var(--primary);">1. Data Fasilitas Pelayanan Kesehatan (Faskes)</h4>
+            <div class="form-grid" style="margin-bottom: 20px;">
+              <div class="form-group">
+                <label class="form-label">Nama Puskesmas / Faskes</label>
+                <input type="text" id="setting_faskes_name" class="form-control" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Kode Faskes / Puskesmas</label>
+                <input type="text" id="setting_faskes_code" class="form-control">
+              </div>
+              <div class="form-group full">
+                <label class="form-label">Alamat Lengkap Puskesmas</label>
+                <input type="text" id="setting_faskes_address" class="form-control" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">No. Telepon / Hotline Keswa</label>
+                <input type="text" id="setting_faskes_phone" class="form-control" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Petugas Pengelola Program Jiwa</label>
+                <input type="text" id="setting_keswa_officer" class="form-control">
+              </div>
+            </div>
+
+            <h4 style="font-size: 14px; margin-bottom: 12px; color: var(--primary);">2. Konfigurasi SMTP Pengirim Email</h4>
+            <div class="form-grid" style="margin-bottom: 20px;">
+              <div class="form-group">
+                <label class="form-label">SMTP Host</label>
+                <input type="text" id="setting_smtp_host" class="form-control" placeholder="smtp.gmail.com" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label">SMTP Port</label>
+                <input type="number" id="setting_smtp_port" class="form-control" placeholder="465" required>
+              </div>
+              <div class="form-group full">
+                <label class="form-label">Email Pengirim (Username SMTP)</label>
+                <input type="email" id="setting_smtp_user" class="form-control" placeholder="puskesmas.sesela@gmail.com">
+                <span class="form-hint">Email akun Gmail atau email resmi domain Puskesmas/Dinkes.</span>
+              </div>
+              <div class="form-group full">
+                <label class="form-label">Password SMTP / App Password Gmail</label>
+                <input type="password" id="setting_smtp_pass" class="form-control" placeholder="16 Karakter App Password (contoh: abcd efgh ijkl mnop)">
+                <span class="form-hint">Untuk Gmail, gunakan <strong>App Password</strong> (Kata Sandi Aplikasi), bukan password login biasa.</span>
+              </div>
+              <div class="form-group full">
+                <label class="form-label">Nama Pengirim yang Ditampilkan</label>
+                <input type="text" id="setting_smtp_sender_name" class="form-control" placeholder="Layanan Jiwa Puskesmas Sesela">
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 11px;">
+              Simpan Perubahan Pengaturan
+            </button>
+          </form>
+        </div>
+
+        <!-- Panel Uji Coba & Panduan -->
+        <div style="display: flex; flex-direction: column; gap: 16px;">
+          <!-- Kartu Uji Coba Kirim Email -->
+          <div class="content-card">
+            <div class="card-header">
+              <div class="card-header-title">Uji Coba Kirim Email (Test Mail)</div>
+            </div>
+            <div style="padding: 20px;">
+              <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 14px;">
+                Kirim email uji coba untuk memastikan setelan SMTP sudah terhubung dengan server email dengan benar.
+              </p>
+              <div class="form-group" style="margin-bottom: 14px;">
+                <label class="form-label">Alamat Email Penerima Tes</label>
+                <input type="email" id="input-test-email" class="form-control" placeholder="emailanda@gmail.com">
+              </div>
+              <button class="btn btn-secondary" id="btn-send-test-email" style="width: 100%; justify-content: center;">
+                Kirim Email Tes Sekarang
+              </button>
+            </div>
+          </div>
+
+          <!-- Kartu Panduan Gmail App Password -->
+          <div class="content-card" style="background-color: #f8fafc;">
+            <div class="card-header" style="background-color: #f1f5f9;">
+              <div class="card-header-title" style="font-size: 14px;">💡 Panduan Singkat Buat Gmail App Password</div>
+            </div>
+            <div style="padding: 16px; font-size: 12.5px; color: #334155; line-height: 1.6;">
+              <ol style="padding-left: 18px;">
+                <li>Buka Akun Google di <strong>myaccount.google.com</strong>.</li>
+                <li>Pilih tab <strong>Keamanan (Security)</strong> dan pastikan <strong>Verifikasi 2 Langkah</strong> sudah aktif.</li>
+                <li>Cari menu <strong>Kata Sandi Aplikasi (App Passwords)</strong>.</li>
+                <li>Beri nama misalnya <em>"Pengingat Jiwa"</em> lalu klik <strong>Buat (Generate)</strong>.</li>
+                <li>Salin 16 karakter kata sandi tersebut ke kolom <strong>Password SMTP</strong> di atas.</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ==================== MODAL TAMBAH/EDIT PASIEN ==================== -->
+  <div class="modal-backdrop" id="modal-patient">
+    <div class="modal-card wide">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modal-patient-title">Tambah Data Pasien ODGJ</h3>
+        <button class="modal-close" onclick="closeModal('modal-patient')">&times;</button>
+      </div>
+      <form id="form-patient">
+        <input type="hidden" id="patient_id">
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">No. Rekam Medis (RM) *</label>
+              <input type="text" id="patient_no_rm" class="form-control" placeholder="contoh: RM-00125" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">No. Induk Kependudukan (NIK)</label>
+              <input type="text" id="patient_nik" class="form-control" placeholder="16 digit NIK">
+            </div>
+            <div class="form-group">
+              <label class="form-label">No. Kartu BPJS / KIS</label>
+              <input type="text" id="patient_no_bpjs" class="form-control" placeholder="No. Kartu BPJS">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Nama Lengkap Pasien *</label>
+              <input type="text" id="patient_name" class="form-control" placeholder="Nama lengkap pasien" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Jenis Kelamin *</label>
+              <select id="patient_gender" class="form-control" required>
+                <option value="L">Laki-Laki (L)</option>
+                <option value="P">Perempuan (P)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Usia (Tahun)</label>
+              <input type="number" id="patient_age" class="form-control" placeholder="contoh: 35">
+            </div>
+            <div class="form-group full">
+              <label class="form-label">Alamat Lengkap *</label>
+              <input type="text" id="patient_address" class="form-control" placeholder="Dusun / RT / RW" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Desa / Kelurahan Wilayah *</label>
+              <select id="patient_village" class="form-control" required>
+                <option value="Desa Sesela">Desa Sesela</option>
+                <option value="Desa Midang">Desa Midang</option>
+                <option value="Desa Gunungsari">Desa Gunungsari</option>
+                <option value="Desa Kekait">Desa Kekait</option>
+                <option value="Desa Dopang">Desa Dopang</option>
+                <option value="Lainnya">Lainnya / Luar Wilayah</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Kategori SPM Jiwa *</label>
+              <select id="patient_category_spm" class="form-control" required>
+                <option value="ODGJ Berat">ODGJ Berat (Indikator SPM 100%)</option>
+                <option value="ODGJ Ringan-Sedang">ODGJ Ringan-Sedang</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Kode Diagnosis (ICD-10) *</label>
+              <input type="text" id="patient_diagnosis_code" class="form-control" placeholder="contoh: F20.0" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Nama Diagnosis Klinis *</label>
+              <input type="text" id="patient_diagnosis_name" class="form-control" placeholder="contoh: Skizofrenia Paranoid" required>
+            </div>
+
+            <!-- Bagian PMO (Pengawas Menelan Obat) -->
+            <div class="form-group full" style="margin-top: 10px; border-top: 1px dashed var(--border-color); padding-top: 14px;">
+              <h4 style="font-size: 13.5px; color: var(--primary);">Data Pengawas Menelan Obat (PMO) / Keluarga</h4>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Nama Pendamping / PMO *</label>
+              <input type="text" id="patient_pmo_name" class="form-control" placeholder="Nama wali/keluarga/kader" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Hubungan dengan Pasien *</label>
+              <select id="patient_pmo_relation" class="form-control" required>
+                <option value="Orang Tua">Orang Tua</option>
+                <option value="Suami/Istri">Suami / Istri</option>
+                <option value="Anak">Anak</option>
+                <option value="Saudara Kandung">Saudara Kandung</option>
+                <option value="Keluarga Lainnya">Keluarga Lainnya</option>
+                <option value="Kader Kesehatan Jiwa">Kader Kesehatan Jiwa</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">No. HP / WhatsApp PMO</label>
+              <input type="text" id="patient_pmo_phone" class="form-control" placeholder="08xxxxxxxxxx">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Email Penerima Pengingat H-1 *</label>
+              <input type="email" id="patient_pmo_email" class="form-control" placeholder="keluarga@gmail.com" required>
+              <span class="form-hint">Email ini akan menerima surat notifikasi H-1 kontrol & obat habis.</span>
+            </div>
+            <div class="form-group full">
+              <label class="form-label">Catatan Tambahan Pasien</label>
+              <textarea id="patient_notes" class="form-control" rows="2" placeholder="Catatan perilaku, riwayat rawat inap, dll."></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('modal-patient')">Batal</button>
+          <button type="submit" class="btn btn-primary">Simpan Data Pasien</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL CATAT KUNJUNGAN & RESEP ==================== -->
+  <div class="modal-backdrop" id="modal-prescription">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">Catat Kunjungan & Resep Obat Jiwa</h3>
+        <button class="modal-close" onclick="closeModal('modal-prescription')">&times;</button>
+      </div>
+      <form id="form-prescription">
+        <input type="hidden" id="presc_patient_id">
+        <div class="modal-body">
+          <div style="background-color: var(--primary-light); padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 16px;">
+            <div style="font-weight: 700; color: var(--primary);" id="presc-modal-patient-name">Nama Pasien</div>
+            <div style="font-size: 12px; color: var(--text-muted);" id="presc-modal-patient-info">No. RM: - | Diagnosa: -</div>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Tanggal Kunjungan / Pemeriksaan *</label>
+              <input type="date" id="presc_visit_date" class="form-control" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Nama Dokter Pemeriksa</label>
+              <input type="text" id="presc_doctor_name" class="form-control" placeholder="dr. Pemeriksa">
+            </div>
+            <div class="form-group full">
+              <label class="form-label">Nama Obat Jiwa & Dosis Resep *</label>
+              <input type="text" id="presc_medicine_name" class="form-control" placeholder="contoh: Risperidone 2mg + THP 2mg" required>
+              <span class="form-hint">Obat jiwa lazim: Risperidone, Haloperidol, Chlorpromazine, THP, Amitriptyline, dll.</span>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Aturan Minum (Tablet per Hari) *</label>
+              <input type="number" step="0.5" id="presc_dosage_per_day" class="form-control" placeholder="contoh: 2 (untuk 2x1)" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Jumlah Tablet Diberikan *</label>
+              <input type="number" id="presc_quantity" class="form-control" placeholder="contoh: 60" required>
+            </div>
+
+            <!-- Preview Kalkulasi Otomatis Stok Obat -->
+            <div class="form-group full" style="background: #fffbeb; border: 1px solid #fde68a; padding: 12px; border-radius: var(--radius-sm);">
+              <div style="font-size: 13px; font-weight: 700; color: #b45309;">Estimasi Ketersediaan Obat (Otomatis):</div>
+              <div style="font-size: 12.5px; color: #78350f;" id="presc-calc-preview">
+                Masukkan dosis dan jumlah tablet untuk menghitung tanggal perkiraan habis.
+              </div>
+            </div>
+
+            <div class="form-group full">
+              <label class="form-label">Jadwal Tanggal Kontrol Berikutnya *</label>
+              <input type="date" id="presc_next_control_date" class="form-control" required>
+              <span class="form-hint">Otomatis disinkronkan dengan masa persediaan obat (sesuai SPM kontrol 1 bulan sekali).</span>
+            </div>
+            <div class="form-group full">
+              <label class="form-label">Catatan Klinis Dokter</label>
+              <textarea id="presc_doctor_notes" class="form-control" rows="2" placeholder="Evaluasi keluhan, tanda tremor/kaku otot, toleransi obat..."></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('modal-prescription')">Batal</button>
+          <button type="submit" class="btn btn-primary">Simpan Kunjungan & Resep</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL DETAIL PASIEN ==================== -->
+  <div class="modal-backdrop" id="modal-detail">
+    <div class="modal-card wide">
+      <div class="modal-header">
+        <h3 class="modal-title">Rekam Pemantauan Pasien Jiwa</h3>
+        <button class="modal-close" onclick="closeModal('modal-detail')">&times;</button>
+      </div>
+      <div class="modal-body" id="detail-modal-body">
+        <!-- Diisi secara dinamis oleh JavaScript -->
+      </div>
+      <div class="modal-footer" id="detail-modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('modal-detail')">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL PRATINJAU EMAIL ==================== -->
+  <div class="modal-backdrop" id="modal-preview-email">
+    <div class="modal-card" style="max-width: 680px;">
+      <div class="modal-header">
+        <h3 class="modal-title">Pratinjau Surat Notifikasi Email</h3>
+        <button class="modal-close" onclick="closeModal('modal-preview-email')">&times;</button>
+      </div>
+      <div class="modal-body" style="background: #f1f5f9; padding: 16px;">
+        <div style="background: white; border-radius: 8px; overflow: hidden; box-shadow: var(--shadow-sm);" id="preview-email-container">
+          <!-- Render HTML Email -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeModal('modal-preview-email')">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== AREA CETAK SURAT PENGINGAT KONTROL ==================== -->
+  <div id="print-sheet" style="display: none;"></div>
+
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- JAVASCRIPT LOGIC -->
+  <script src="icons.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

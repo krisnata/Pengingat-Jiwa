@@ -1,0 +1,14 @@
+# Dependencies & Runtimes
+node_modules/
+.npm/
+
+# Database SQLite Lokal & Wal
+*.db
+*.db-shm
+*.db-wal
+*.db-journal
+
+# Log & Temporary files
+*.log
+.DS_Store
+Thumbs.db
