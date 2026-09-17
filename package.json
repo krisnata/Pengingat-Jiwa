@@ -1,0 +1,22 @@
+{
+  "name": "pengingat-jiwa",
+  "version": "1.0.0",
+  "description": "Sistem Pengingat Jadwal Kontrol & Minum Obat Pasien ODGJ Berdasarkan Regulasi SPM Keswa Puskesmas",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "seed": "node seed.js"
+  },
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "keywords": [
+    "odgj",
+    "kesehatan-jiwa",
+    "spm-kesehatan",
+    "puskesmas",
+    "pengingat-obat"
+  ],
+  "author": "Krisnata",
+  "license": "MIT"
+}
